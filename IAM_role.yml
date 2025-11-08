@@ -1,0 +1,40 @@
+---
+- name: Create IAM Role 
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  collections:
+    - amazon.aws
+
+  vars:
+    role_name: AnjaliDemoRole
+    region: us-west-2
+
+    # This is a simple assume role policy document allowing EC2 to assume this role
+    assume_role_policy:
+      Version: "2012-10-17"
+      Statement:
+        - Effect: "Allow"
+          Principal:
+            Service: "ec2.amazonaws.com"
+          Action: "sts:AssumeRole"
+
+  tasks:
+    - name: Create IAM role
+      amazon.aws.iam_role:
+        name: "{{ role_name }}"
+        assume_role_policy_document: "{{ assume_role_policy | to_json }}"
+        state: present
+        description: "IAM role created by Ansible"
+      register: role_result
+
+    - name: Attach AmazonEC2FullAccess policy to role
+      amazon.aws.iam_managed_policy:
+        iam_type: role
+        iam_name: "{{ role_name }}"
+        policy_arn: arn:aws:iam::aws:policy/AmazonEC2FullAccess
+        state: present
+
+    - name: Output IAM role
+      debug:
+        var: role_result
